@@ -9,20 +9,46 @@
     *{box-sizing:border-box}body{margin:0}header{background:#145c43;color:white;padding:28px max(20px,calc((100% - 1120px)/2))}
     header h1{margin:0 0 8px;font-size:clamp(1.5rem,3vw,2.25rem)}header p{margin:0;color:#d9f2e5}
     main{max-width:1120px;margin:auto;padding:24px 18px 48px}.intro{line-height:1.6}
-    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:22px 0}
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:22px 0 14px}
     .stat,.panel,.centre{background:white;border:1px solid #dce8e0;border-radius:14px;padding:18px;box-shadow:0 3px 12px #163d2910}
-    .stat span{display:block;color:#53665c;font-size:.9rem}.stat strong{font-size:2rem;display:block;margin-top:8px;color:#145c43}
+    .stat{border-top:4px solid #145c43}
+    .stat.wait{border-top-color:#e1a42b}.stat.work{border-top-color:#2f5fc4}.stat.done{border-top-color:#1f9d5c}
+    .stat span{display:flex;align-items:center;gap:8px;color:#53665c;font-size:.9rem}
+    .stat strong{font-size:2rem;display:block;margin-top:8px;color:#145c43}
+    .stat small{display:block;margin-top:2px;color:#617268;font-size:.8rem}
+    .dot{width:10px;height:10px;border-radius:50%;background:#145c43;display:inline-block;flex:none}
+    .dot.wait{background:#e1a42b}.dot.work{background:#2f5fc4}.dot.done{background:#1f9d5c}
+    .pipeline{margin:0 0 6px}.bar{display:flex;height:14px;border-radius:999px;overflow:hidden;background:#e5ede8}
+    .bar i{display:block;height:100%;transition:width .4s}
+    .bar .wait{background:#e1a42b}.bar .work{background:#2f5fc4}.bar .done{background:#1f9d5c}
+    .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;font-size:.82rem;color:#53665c}
+    .legend span{display:inline-flex;align-items:center;gap:6px}
     .section-head{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
     h2{margin:28px 0 14px} .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
     .centre h3{margin:0 0 8px;color:#145c43}.muted{color:#53665c;font-size:.92rem;line-height:1.5}
-    .pill{display:inline-block;border-radius:999px;padding:5px 9px;font-size:.78rem;font-weight:700;background:#e6f5ec;color:#17643f}
+    .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 10px;font-size:.78rem;font-weight:700;background:#e6f5ec;color:#17643f}
     .pill.wait{background:#fff0cf;color:#845400}.pill.work{background:#e6efff;color:#234d9b}.pill.done{background:#dff5e9;color:#17643f}
     .tags{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.tag{font-size:.78rem;background:#edf2ef;border-radius:6px;padding:5px 7px}
     .panel{line-height:1.6}.schedule{width:100%;border-collapse:collapse;margin-top:12px}
     .schedule th,.schedule td{text-align:left;padding:11px;border-bottom:1px solid #e2ebe5;vertical-align:top}
     .schedule th{background:#f1f7f3}.notice{border-left:4px solid #e1a42b;padding:10px 14px;background:#fff8e8;border-radius:4px}
+    .revised{display:inline-block;margin-left:6px;font-size:.7rem;font-weight:700;background:#fff0cf;color:#845400;border-radius:4px;padding:2px 6px;vertical-align:middle}
+    .scroll{overflow-x:auto}
+    details.admin{margin-top:16px;border:1px dashed #9fbfae;border-radius:12px;background:#f8fbf9}
+    details.admin summary{cursor:pointer;padding:12px 16px;font-weight:700;color:#145c43}
+    .admin-body{padding:4px 16px 16px}
+    .admin form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:10px}
+    .admin label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;font-weight:600;color:#33473e}
+    .admin input,.admin select,.admin textarea{font:inherit;font-weight:400;padding:9px 10px;border:1px solid #c5d6cb;border-radius:8px;background:white}
+    .admin .full{grid-column:1/-1}
+    .admin h3{margin:18px 0 0;font-size:1rem;color:#145c43}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;grid-column:1/-1}
+    button{font:inherit;font-weight:700;border:0;border-radius:8px;padding:10px 16px;cursor:pointer;background:#145c43;color:white}
+    button.secondary{background:#e6efe9;color:#145c43}button:hover{filter:brightness(1.08)}
+    #msg{margin:12px 0 0;font-size:.9rem;min-height:1.2em}.ok{color:#17643f}.err{color:#a32424}
+    :focus-visible{outline:3px solid #2f5fc4;outline-offset:2px}
     footer{text-align:center;color:#617268;padding:20px;font-size:.85rem}
-    @media(max-width:560px){.schedule th:nth-child(3),.schedule td:nth-child(3){display:none}}
+    @media(max-width:560px){.schedule th:nth-child(4),.schedule td:nth-child(4){display:none}}
   </style>
 </head>
 <body>
@@ -32,11 +58,23 @@
 </header>
 <main>
   <p class="intro">Electronic waste contains materials that can be recovered safely when handled by appropriate collection and recycling partners. Check the accepted categories and schedule before visiting. Sample records below are for a demonstration; confirm real-world timings with your city administration.</p>
+
+  <h2 style="margin-top:20px">Processing status dashboard</h2>
   <section aria-label="Processing dashboard" class="stats">
-    <div class="stat"><span>Items collected</span><strong id="collected">248</strong></div>
-    <div class="stat"><span>Awaiting processing</span><strong id="awaiting">36</strong></div>
-    <div class="stat"><span>Under recycling</span><strong id="recycling">52</strong></div>
-    <div class="stat"><span>Successfully recycled</span><strong id="recycled">160</strong></div>
+    <div class="stat"><span><i class="dot"></i>Items collected</span><strong id="collected">0</strong><small>Total received</small></div>
+    <div class="stat wait"><span><i class="dot wait"></i>Awaiting processing</span><strong id="awaiting">0</strong><small id="awaitingPct"></small></div>
+    <div class="stat work"><span><i class="dot work"></i>Under recycling</span><strong id="recycling">0</strong><small id="recyclingPct"></small></div>
+    <div class="stat done"><span><i class="dot done"></i>Successfully recycled</span><strong id="recycled">0</strong><small id="recycledPct"></small></div>
+  </section>
+  <section class="pipeline" aria-label="Processing pipeline">
+    <div class="bar" role="img" id="bar" aria-label="Processing pipeline breakdown">
+      <i class="wait" id="barWait"></i><i class="work" id="barWork"></i><i class="done" id="barDone"></i>
+    </div>
+    <div class="legend">
+      <span><i class="dot wait"></i>Awaiting processing</span>
+      <span><i class="dot work"></i>Under recycling</span>
+      <span><i class="dot done"></i>Successfully recycled</span>
+    </div>
   </section>
 
   <div class="section-head"><h2>Collection centres</h2><span class="pill">5 sample centres</span></div>
@@ -53,14 +91,56 @@
     </ol>
   </section>
 
-  <div class="section-head"><h2>Updated collection schedule</h2><span class="pill">Administrator-published sample</span></div>
+  <div class="section-head"><h2>Updated collection schedule</h2><span class="pill" id="schedPill">Administrator-published sample</span></div>
   <section class="panel">
-    <p class="muted">Administrators can replace these sample entries with approved local information before publishing updates.</p>
+    <p class="muted">Administrators can publish revised timings and notices below. Revised entries are highlighted for residents.</p>
+    <div class="scroll">
     <table class="schedule">
-      <thead><tr><th>Centre</th><th>Schedule</th><th>Update / note</th></tr></thead>
+      <thead><tr><th>Centre</th><th>Schedule</th><th>Update / note</th><th>Published</th></tr></thead>
       <tbody id="schedule"></tbody>
     </table>
+    </div>
     <p class="notice"><strong>Schedule notice:</strong> Demonstration data only. Verify dates, opening hours, and accepted items with the relevant city office.</p>
+
+    <details class="admin">
+      <summary>🔧 Administrator: publish updates</summary>
+      <div class="admin-body">
+        <p class="muted">Demonstration only: changes are saved in this browser (localStorage). A production portal needs server-side authentication and storage.</p>
+
+        <h3>Publish a schedule update</h3>
+        <form id="schedForm">
+          <label>Centre
+            <select id="fCentre" required></select>
+          </label>
+          <label>Effective date
+            <input type="date" id="fDate">
+          </label>
+          <label class="full">Revised schedule
+            <input type="text" id="fSchedule" maxlength="120" placeholder="e.g. Mon–Fri, 9:00 AM–3:00 PM" required>
+          </label>
+          <label class="full">Note to residents (optional)
+            <textarea id="fNote" rows="2" maxlength="240" placeholder="e.g. Closed on public holiday; battery drop-off paused."></textarea>
+          </label>
+          <div class="actions">
+            <button type="submit">Publish update</button>
+            <button type="button" class="secondary" id="clearUpdates">Clear all published updates</button>
+          </div>
+        </form>
+
+        <h3>Update dashboard counts</h3>
+        <form id="countForm">
+          <label>Awaiting processing<input type="number" min="0" step="1" id="cWait" required></label>
+          <label>Under recycling<input type="number" min="0" step="1" id="cWork" required></label>
+          <label>Successfully recycled<input type="number" min="0" step="1" id="cDone" required></label>
+          <p class="muted full" style="margin:0">Items collected is calculated as the sum of the three statuses.</p>
+          <div class="actions">
+            <button type="submit">Save counts</button>
+            <button type="button" class="secondary" id="resetCounts">Reset to sample counts</button>
+          </div>
+        </form>
+        <p id="msg" role="status" aria-live="polite"></p>
+      </div>
+    </details>
   </section>
 </main>
 <footer>City E-Waste Portal · Demonstration project for CI/CD and Kubernetes recovery</footer>
@@ -72,13 +152,107 @@ const centres = [
  {name:"East Ward Eco Station",location:"East Ward Service Lane",devices:["Televisions","Monitors","Laptops","Cables"],schedule:"Mon–Sat, 9:30 AM–4:30 PM",instruction:"Transport screens upright and protect them from breakage.",status:"Successfully recycled",kind:"done"},
  {name:"South Community Collection Centre",location:"South Market Extension",devices:["Mobile phones","Batteries","Small appliances","Laptops"],schedule:"Wed–Sun, 10:00 AM–5:00 PM",instruction:"Back up and erase personal data before handing over devices.",status:"Awaiting processing",kind:"wait"}
 ];
-document.getElementById("centres").innerHTML = centres.map(c => `
- <article class="centre"><h3>${c.name}</h3><div class="muted">📍 ${c.location}</div>
- <div class="tags">${c.devices.map(d=>`<span class="tag">${d}</span>`).join("")}</div>
- <p><strong>Schedule:</strong> ${c.schedule}</p><p class="muted"><strong>Instructions:</strong> ${c.instruction}</p>
- <span class="pill ${c.kind}">${c.status}</span></article>`).join("");
-document.getElementById("schedule").innerHTML = centres.map(c =>
- `<tr><td>${c.name}</td><td>${c.schedule}</td><td>${c.status}</td></tr>`).join("");
+
+const SAMPLE_COUNTS = {awaiting:36, recycling:52, recycled:160};
+const KEY = "ewaste.portal.v1";
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+
+function load(){
+  try{
+    const d = JSON.parse(localStorage.getItem(KEY) || "{}");
+    return {counts: d.counts || {...SAMPLE_COUNTS}, updates: d.updates || {}};
+  }catch(e){ return {counts:{...SAMPLE_COUNTS}, updates:{}}; }
+}
+let state = load();
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); return true; }
+  catch(e){ return false; }
+}
+function say(text, ok=true){
+  const m = $("msg"); m.textContent = text; m.className = ok ? "ok" : "err";
+}
+
+function renderStats(){
+  const {awaiting, recycling, recycled} = state.counts;
+  const total = awaiting + recycling + recycled;
+  $("collected").textContent = total;
+  $("awaiting").textContent = awaiting;
+  $("recycling").textContent = recycling;
+  $("recycled").textContent = recycled;
+  const pct = n => total ? Math.round(n/total*100) : 0;
+  $("awaitingPct").textContent = pct(awaiting) + "% of collected";
+  $("recyclingPct").textContent = pct(recycling) + "% of collected";
+  $("recycledPct").textContent = pct(recycled) + "% of collected";
+  $("barWait").style.width = pct(awaiting) + "%";
+  $("barWork").style.width = pct(recycling) + "%";
+  $("barDone").style.width = pct(recycled) + "%";
+  $("bar").setAttribute("aria-label",
+    `Pipeline: ${pct(awaiting)}% awaiting, ${pct(recycling)}% under recycling, ${pct(recycled)}% recycled`);
+  $("cWait").value = awaiting; $("cWork").value = recycling; $("cDone").value = recycled;
+}
+
+function renderCentres(){
+  $("centres").innerHTML = centres.map(c => {
+    const u = state.updates[c.name];
+    return `
+ <article class="centre"><h3>${esc(c.name)}</h3><div class="muted">📍 ${esc(c.location)}</div>
+ <div class="tags">${c.devices.map(d=>`<span class="tag">${esc(d)}</span>`).join("")}</div>
+ <p><strong>Schedule:</strong> ${esc(u ? u.schedule : c.schedule)}${u ? '<span class="revised">Revised</span>' : ""}</p>
+ <p class="muted"><strong>Instructions:</strong> ${esc(c.instruction)}</p>
+ <span class="pill ${c.kind}"><i class="dot ${c.kind}"></i>${esc(c.status)}</span></article>`;
+  }).join("");
+}
+
+function renderSchedule(){
+  $("schedule").innerHTML = centres.map(c => {
+    const u = state.updates[c.name];
+    const sched = u ? `${esc(u.schedule)}<span class="revised">Revised</span>` : esc(c.schedule);
+    const note = u && u.note ? esc(u.note) : `<span class="pill ${c.kind}"><i class="dot ${c.kind}"></i>${esc(c.status)}</span>`;
+    const pub = u ? esc(u.date || u.publishedAt) : "—";
+    return `<tr><td>${esc(c.name)}</td><td>${sched}</td><td>${note}</td><td>${pub}</td></tr>`;
+  }).join("");
+  const n = Object.keys(state.updates).length;
+  $("schedPill").textContent = n ? `${n} update${n>1?"s":""} published` : "Administrator-published sample";
+}
+
+function renderAll(){ renderStats(); renderCentres(); renderSchedule(); }
+
+$("fCentre").innerHTML = centres.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join("");
+$("fDate").value = new Date().toISOString().slice(0,10);
+
+$("schedForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const schedule = $("fSchedule").value.trim();
+  if(!schedule){ say("Please enter the revised schedule.", false); return; }
+  state.updates[$("fCentre").value] = {
+    schedule,
+    note: $("fNote").value.trim(),
+    date: $("fDate").value,
+    publishedAt: new Date().toISOString().slice(0,10)
+  };
+  renderAll();
+  say(save() ? "Schedule update published." : "Published for this session, but it could not be saved in this browser.", save());
+  $("fSchedule").value = ""; $("fNote").value = "";
+});
+
+$("clearUpdates").addEventListener("click", () => {
+  state.updates = {}; save(); renderAll(); say("All published updates cleared.");
+});
+
+$("countForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const vals = [$("cWait"), $("cWork"), $("cDone")].map(i => Number(i.value));
+  if(vals.some(v => !Number.isInteger(v) || v < 0)){ say("Counts must be whole numbers, 0 or more.", false); return; }
+  state.counts = {awaiting:vals[0], recycling:vals[1], recycled:vals[2]};
+  renderAll(); save(); say("Dashboard counts updated.");
+});
+
+$("resetCounts").addEventListener("click", () => {
+  state.counts = {...SAMPLE_COUNTS}; save(); renderAll(); say("Counts reset to sample values.");
+});
+
+renderAll();
 </script>
 </body>
 </html>
