@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>City E-Waste Collection & Recycling Portal</title>
+  <style>
+    :root{font-family:Inter,Segoe UI,Arial,sans-serif;color:#172b26;background:#f4f8f5}
+    *{box-sizing:border-box}body{margin:0}header{background:#145c43;color:white;padding:28px max(20px,calc((100% - 1120px)/2))}
+    header h1{margin:0 0 8px;font-size:clamp(1.5rem,3vw,2.25rem)}header p{margin:0;color:#d9f2e5}
+    main{max-width:1120px;margin:auto;padding:24px 18px 48px}.intro{line-height:1.6}
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:22px 0}
+    .stat,.panel,.centre{background:white;border:1px solid #dce8e0;border-radius:14px;padding:18px;box-shadow:0 3px 12px #163d2910}
+    .stat span{display:block;color:#53665c;font-size:.9rem}.stat strong{font-size:2rem;display:block;margin-top:8px;color:#145c43}
+    .section-head{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    h2{margin:28px 0 14px} .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+    .centre h3{margin:0 0 8px;color:#145c43}.muted{color:#53665c;font-size:.92rem;line-height:1.5}
+    .pill{display:inline-block;border-radius:999px;padding:5px 9px;font-size:.78rem;font-weight:700;background:#e6f5ec;color:#17643f}
+    .pill.wait{background:#fff0cf;color:#845400}.pill.work{background:#e6efff;color:#234d9b}.pill.done{background:#dff5e9;color:#17643f}
+    .tags{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.tag{font-size:.78rem;background:#edf2ef;border-radius:6px;padding:5px 7px}
+    .panel{line-height:1.6}.schedule{width:100%;border-collapse:collapse;margin-top:12px}
+    .schedule th,.schedule td{text-align:left;padding:11px;border-bottom:1px solid #e2ebe5;vertical-align:top}
+    .schedule th{background:#f1f7f3}.notice{border-left:4px solid #e1a42b;padding:10px 14px;background:#fff8e8;border-radius:4px}
+    footer{text-align:center;color:#617268;padding:20px;font-size:.85rem}
+    @media(max-width:560px){.schedule th:nth-child(3),.schedule td:nth-child(3){display:none}}
+  </style>
+</head>
+<body>
+<header>
+  <h1>♻ City E-Waste Collection & Recycling Portal</h1>
+  <p>Find a collection centre, prepare devices safely, and follow responsible recycling.</p>
+</header>
+<main>
+  <p class="intro">Electronic waste contains materials that can be recovered safely when handled by appropriate collection and recycling partners. Check the accepted categories and schedule before visiting. Sample records below are for a demonstration; confirm real-world timings with your city administration.</p>
+  <section aria-label="Processing dashboard" class="stats">
+    <div class="stat"><span>Items collected</span><strong id="collected">248</strong></div>
+    <div class="stat"><span>Awaiting processing</span><strong id="awaiting">36</strong></div>
+    <div class="stat"><span>Under recycling</span><strong id="recycling">52</strong></div>
+    <div class="stat"><span>Successfully recycled</span><strong id="recycled">160</strong></div>
+  </section>
+
+  <div class="section-head"><h2>Collection centres</h2><span class="pill">5 sample centres</span></div>
+  <section id="centres" class="grid" aria-label="Collection centres"></section>
+
+  <h2>Recycling instructions</h2>
+  <section class="panel">
+    <ol>
+      <li>Back up important data, sign out of accounts, and factory-reset phones, tablets, and computers when possible.</li>
+      <li>Remove SIM and memory cards. Do not share passwords or personal data with collection staff.</li>
+      <li>Keep batteries separate where the centre requests it. Do not puncture, crush, or place damaged batteries in household waste.</li>
+      <li>Do not dismantle devices or burn cables. Bring items to an authorised centre and follow its handling instructions.</li>
+      <li>Ask for a receipt or tracking reference so you can follow the processing status.</li>
+    </ol>
+  </section>
+
+  <div class="section-head"><h2>Updated collection schedule</h2><span class="pill">Administrator-published sample</span></div>
+  <section class="panel">
+    <p class="muted">Administrators can replace these sample entries with approved local information before publishing updates.</p>
+    <table class="schedule">
+      <thead><tr><th>Centre</th><th>Schedule</th><th>Update / note</th></tr></thead>
+      <tbody id="schedule"></tbody>
+    </table>
+    <p class="notice"><strong>Schedule notice:</strong> Demonstration data only. Verify dates, opening hours, and accepted items with the relevant city office.</p>
+  </section>
+</main>
+<footer>City E-Waste Portal · Demonstration project for CI/CD and Kubernetes recovery</footer>
+<script>
+const centres = [
+ {name:"Central Green Hub",location:"Town Hall Road",devices:["Mobile phones","Laptops","Batteries","Televisions"],schedule:"Mon–Sat, 9:00 AM–5:00 PM",instruction:"Remove SIM and memory cards; tape battery terminals if requested.",status:"Accepting items",kind:"done"},
+ {name:"Northside Recycling Point",location:"North Industrial Estate",devices:["Laptops","Printers","Cables","Mobile phones"],schedule:"Tue–Sun, 10:00 AM–6:00 PM",instruction:"Keep chargers and accessories together; do not dismantle devices.",status:"Awaiting processing",kind:"wait"},
+ {name:"Riverside Drop-off Centre",location:"Riverside Community Hall",devices:["Batteries","Small appliances","Tablets","Mobile phones"],schedule:"Mon, Wed, Fri, 8:30 AM–1:00 PM",instruction:"Separate loose batteries and tell staff if a battery is swollen.",status:"Under recycling",kind:"work"},
+ {name:"East Ward Eco Station",location:"East Ward Service Lane",devices:["Televisions","Monitors","Laptops","Cables"],schedule:"Mon–Sat, 9:30 AM–4:30 PM",instruction:"Transport screens upright and protect them from breakage.",status:"Successfully recycled",kind:"done"},
+ {name:"South Community Collection Centre",location:"South Market Extension",devices:["Mobile phones","Batteries","Small appliances","Laptops"],schedule:"Wed–Sun, 10:00 AM–5:00 PM",instruction:"Back up and erase personal data before handing over devices.",status:"Awaiting processing",kind:"wait"}
+];
+document.getElementById("centres").innerHTML = centres.map(c => `
+ <article class="centre"><h3>${c.name}</h3><div class="muted">📍 ${c.location}</div>
+ <div class="tags">${c.devices.map(d=>`<span class="tag">${d}</span>`).join("")}</div>
+ <p><strong>Schedule:</strong> ${c.schedule}</p><p class="muted"><strong>Instructions:</strong> ${c.instruction}</p>
+ <span class="pill ${c.kind}">${c.status}</span></article>`).join("");
+document.getElementById("schedule").innerHTML = centres.map(c =>
+ `<tr><td>${c.name}</td><td>${c.schedule}</td><td>${c.status}</td></tr>`).join("");
+</script>
+</body>
+</html>
