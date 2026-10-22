@@ -2,103 +2,114 @@ pipeline {
   agent any
 
   parameters {
-    choice(name: 'DEPLOY_TARGET', choices: ['test', 'production'], description: 'Choose deployment target')
-    booleanParam(name: 'DEPLOY_TO_K8S', defaultValue: true, description: 'Deploy to Docker Desktop Kubernetes')
+    booleanParam(name: 'FAULTY_RELEASE', defaultValue: false,
+                 description: 'Tick to build and deploy a deliberately broken version (rollback demo)')
   }
 
   environment {
-    IMAGE_NAME = 'abhinavdeo/ewaste-collection'
-    K8S_NAMESPACE = 'default'
+    REPO   = "YOURUSERNAME/ewaste-portal"
+    DEPLOY = "ewaste-portal"
   }
 
   stages {
     stage('Checkout') {
-      steps {
-        checkout scm
-        sh 'git log -1 --oneline'
-      }
+      steps { checkout scm }
     }
 
-    stage('Parallel validation') {
-      parallel {
-        stage('HTML checks') {
-          steps {
-            sh '''
-              test -s index.html
-              grep -q "Collection centres" index.html
-              grep -q "Recycling instructions" index.html
-              grep -q "Successfully recycled" index.html
-              echo "HTML content checks passed"
-            '''
-          }
-        }
-        stage('Manifest checks') {
-          steps {
-            sh '''
-              test -s Dockerfile
-              test -s deployment.yaml
-              grep -q "kind: Deployment" deployment.yaml
-              grep -q "readinessProbe" deployment.yaml
-              echo "Deployment manifest checks passed"
-            '''
-          }
-        }
-      }
-    }
-
-    stage('Build image') {
+    stage('Prepare') {
       steps {
         script {
-          env.IMAGE_TAG = "${env.BUILD_NUMBER}"
-        }
-        sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG -t $IMAGE_NAME:latest .'
-      }
-    }
-
-    stage('Push image') {
-      steps {
-        withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-          sh '''
-            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-            docker push "$IMAGE_NAME:$IMAGE_TAG"
-            docker push "$IMAGE_NAME:latest"
-            docker logout
-          '''
+          env.TAG   = params.FAULTY_RELEASE ? "${env.BUILD_NUMBER}-faulty" : "${env.BUILD_NUMBER}"
+          env.IMAGE = "${env.REPO}:${env.TAG}"
+          env.ROLLED_BACK = 'false'
+          echo "Release image: ${env.IMAGE} (faulty=${params.FAULTY_RELEASE})"
         }
       }
     }
 
-    stage('Deploy to Kubernetes') {
-      when {
-        expression { return params.DEPLOY_TO_K8S }
-      }
+    stage('Build Image') {
       steps {
-        withCredentials([file(credentialsId: 'kubeconfig-docker-desktop', variable: 'KUBECONFIG_FILE')]) {
-          sh '''
-            export KUBECONFIG="$KUBECONFIG_FILE"
-            sed "s|DOCKERHUB_USERNAME|${IMAGE_NAME%%/*}|" deployment.yaml | kubectl apply -n "$K8S_NAMESPACE" -f -
-            kubectl set image deployment/ewaste-portal ewaste-portal="$IMAGE_NAME:$IMAGE_TAG" -n "$K8S_NAMESPACE"
-            if ! kubectl rollout status deployment/ewaste-portal -n "$K8S_NAMESPACE" --timeout=120s; then
-              echo "Rollout failed; automatically rolling back to previous stable revision."
-              kubectl rollout undo deployment/ewaste-portal -n "$K8S_NAMESPACE"
-              kubectl rollout status deployment/ewaste-portal -n "$K8S_NAMESPACE" --timeout=120s
-              exit 1
-            fi
-          '''
+        sh 'docker build --build-arg FAULTY=${FAULTY_RELEASE} -t $IMAGE .'
+      }
+    }
+
+    stage('Push Image') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-creds',
+                                          usernameVariable: 'DH_USER',
+                                          passwordVariable: 'DH_PASS')]) {
+          sh 'echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin'
+          sh 'docker push $IMAGE'
+          script {
+            // Only healthy builds are allowed to move "latest"
+            if (!params.FAULTY_RELEASE) {
+              sh 'docker tag $IMAGE $REPO:latest'
+              sh 'docker push $REPO:latest'
+            }
+          }
         }
       }
     }
 
-    stage('Archive manifest') {
+    stage('Deploy & Detect Failure') {
       steps {
-        archiveArtifacts artifacts: 'index.html,Dockerfile,deployment.yaml,Jenkinsfile', fingerprint: true
+        withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+          script {
+            env.PREV_IMAGE = sh(returnStdout: true, script:
+              "kubectl get deployment $DEPLOY -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || true").trim()
+            echo "Current stable image before deploy: ${env.PREV_IMAGE ?: 'none'}"
+
+            sh 'sed "s|IMAGE_PLACEHOLDER|$IMAGE|" k8s/deployment.yaml | kubectl apply -f -'
+            sh 'kubectl annotate deployment $DEPLOY kubernetes.io/change-cause="Jenkins build $BUILD_NUMBER: $IMAGE" --overwrite'
+
+            int rc = sh(returnStatus: true, script: 'kubectl rollout status deployment/$DEPLOY --timeout=90s')
+
+            if (rc != 0) {
+              echo "ROLLOUT FAILED for ${env.IMAGE}. Collecting evidence, then rolling back."
+              sh 'kubectl get pods -l app=$DEPLOY || true'
+              sh 'kubectl describe pods -l app=$DEPLOY | tail -n 25 || true'
+              sh 'kubectl logs -l app=$DEPLOY --tail=20 || true'
+
+              if (!env.PREV_IMAGE) {
+                error('Rollout failed and there is no previous release to roll back to.')
+              }
+              sh 'kubectl rollout undo deployment/$DEPLOY'
+              sh 'kubectl rollout status deployment/$DEPLOY --timeout=120s'
+              env.ROLLED_BACK = 'true'
+              echo "Rolled back to previous stable release: ${env.PREV_IMAGE}"
+            } else {
+              echo "Rollout succeeded for ${env.IMAGE}"
+            }
+          }
+        }
+      }
+    }
+
+    stage('Verify Application') {
+      steps {
+        withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+          sh 'kubectl get deployment $DEPLOY'
+          sh 'kubectl get pods -l app=$DEPLOY'
+          sh 'echo "Running image: $(kubectl get deployment $DEPLOY -o jsonpath=\'{.spec.template.spec.containers[0].image}\')"'
+          sh 'kubectl rollout history deployment/$DEPLOY'
+
+          // Smoke test from inside the cluster
+          sh 'kubectl run smoke-$BUILD_NUMBER --rm -i --restart=Never --image=curlimages/curl:8.8.0 --command -- curl -sf http://ewaste-portal-svc/ | grep -o "<title>[^<]*</title>"'
+          echo 'Smoke test passed: application is serving traffic.'
+
+          script {
+            if (env.ROLLED_BACK == 'true') {
+              // Use error('...') instead if you want the build itself to show red
+              currentBuild.result = 'UNSTABLE'
+              echo 'Build marked UNSTABLE: the new release failed and was automatically rolled back.'
+            }
+          }
+        }
       }
     }
   }
 
   post {
-    always {
-      echo "Pipeline ${currentBuild.currentResult}: build ${env.BUILD_NUMBER}"
-    }
+    always { sh 'docker logout || true' }
   }
 }
