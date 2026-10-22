@@ -7,7 +7,7 @@ pipeline {
   }
 
   environment {
-    IMAGE_NAME = 'DOCKERHUB_USERNAME/ewaste-portal'
+    IMAGE_NAME = 'abhinavdeo/ewaste-collection'
     K8S_NAMESPACE = 'default'
   }
 
